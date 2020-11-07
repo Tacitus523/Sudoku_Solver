@@ -6,6 +6,7 @@ class Sudoku:
         if isinstance(array,type(None)):
             self.array=np.zeros((9,9),dtype=int)
         else:
+            self.original=array.copy()
             self.array=array
         
     def draw(self):
@@ -43,11 +44,13 @@ class Sudoku:
                         return False
         return True
 
-    def occupy_first(self,element):
-        for row in self.array:
-            for column_element in row:
-                if not column_element:
-                    column_element=0
+    def legit_in(self,row,column,element):
+        temp=self.array[row][column]
+        self.array[row][column]=element
+        if not self.is_legit():
+            self.array[row][column]=temp
+            return False
+        return True
 
     def is_solved(self):
         for row in self.array:
@@ -58,77 +61,64 @@ class Sudoku:
             return False
         return True
         
+sudoku=np.array([
+    [0,0,0,0,7,0,8,0,0],
+    [0,0,0,0,3,2,0,9,0],
+    [0,0,0,1,0,8,0,7,0],
+    [1,3,0,0,0,9,6,0,0],
+    [9,0,0,5,0,3,0,0,7],
+    [0,0,4,6,0,0,0,3,1],
+    [0,9,0,3,0,5,0,0,0],
+    [0,8,0,7,9,0,0,0,0],
+    [0,0,1,0,6,0,0,0,0]
+])
+sudoku=Sudoku(sudoku)
 
+sudoku=np.array([
+    [0,5,1,0,4,0,9,7,0],
+    [2,9,0,0,0,0,0,0,0],
+    [0,0,6,3,0,0,0,2,0],
+    [0,0,9,5,0,8,0,0,4],
+    [0,0,0,0,6,0,0,0,0],
+    [5,0,0,2,0,9,3,0,0],
+    [0,2,0,0,0,5,1,0,0],
+    [0,0,0,0,0,0,0,5,8],
+    [0,7,5,0,8,0,6,4,0],
+])
+sudoku=Sudoku(sudoku)
 
-sudoku=np.zeros((9,9),dtype=int)
-sudoku_example=sudoku.copy()
-sudoku_example[0,4]=7
-sudoku_example[0,6]=8
-sudoku_example[1,4]=3
-sudoku_example[1,5]=2
-sudoku_example[1,7]=9
-sudoku_example[2,3]=1
-sudoku_example[2,5]=8
-sudoku_example[2,7]=7
-sudoku_example[3,0]=1
-sudoku_example[3,1]=3
-sudoku_example[3,5]=9
-sudoku_example[3,6]=6
-sudoku_example[4,0]=9
-sudoku_example[4,3]=5
-sudoku_example[4,5]=3
-sudoku_example[4,8]=7
-sudoku_example[5,2]=4
-sudoku_example[5,3]=6
-sudoku_example[5,7]=3
-sudoku_example[5,8]=1
-sudoku_example[6,1]=9
-sudoku_example[6,3]=3
-sudoku_example[6,5]=5
-sudoku_example[7,1]=8
-sudoku_example[7,3]=7
-sudoku_example[7,4]=9
-sudoku_example[8,2]=1
-sudoku_example[8,4]=6
-sudoku_example=Sudoku(sudoku_example)
-
-def solve_Sudoku(array,row=0,column_element=0):
-    if not isinstance(array, Sudoku):
-        sudoku=Sudoku(array)
-    elif isinstance(array, Sudoku):
-        sudoku, array=array,array.array
-
-    for element in Sudoku.elements:
-        if not sudoku.array[row][column_element] and not array[row][column_element]:
-            sudoku.array[row][column_element]=element
-        elif column_element!=8:
-            solve_Sudoku(sudoku,row,column_element+1)
+def solve_Sudoku(sudoku, row=0, column_element=0):
+    if not isinstance(sudoku, Sudoku):
+        sudoku=Sudoku(sudoku)
+    
+    
+    if not sudoku.original[row][column_element]:
+        for element in Sudoku.elements:
+            if sudoku.legit_in(row,column_element,element):
+                if column_element!=8:
+                    if solve_Sudoku(sudoku,row,column_element+1):
+                        return True
+                elif row!=8:
+                    if solve_Sudoku(sudoku,row+1,0):
+                        return True  
+            else:
+                sudoku.array[row][column_element]=0
+    else:
+        if column_element!=8:
+            if solve_Sudoku(sudoku,row,column_element+1):
+                return True
         elif row!=8:
-            solve_Sudoku(sudoku,row+1,0)
-
+            if solve_Sudoku(sudoku,row+1,0):
+                return True
+        else:
+            print("Highest field reached")     
+                
+    if sudoku.is_solved():
+        sudoku.draw()
+        return True
         
-        if sudoku.is_legit():
-            if column_element==4 and row==1:
-                sudoku.draw()
-            if column_element==8 and row==1:
-                sudoku.draw()
-            if column_element!=8:
-                #print(f"next try at ({row},{column_element+1}) with {0}")
-                if solve_Sudoku(sudoku,row,column_element+1):
-                    return True
-            elif row!=8:
-                #print(f"next try at ({row},{column_element}) with {0}")
-                if solve_Sudoku(sudoku,row+1,0):
-                    return True
-            
-        
-        if sudoku.is_solved():
-            return True
-
-        if not array[row][column_element]:
-            sudoku.array[row][column_element]=0
 
 
 if __name__ == "__main__":
-    solve_Sudoku(sudoku_example)
-    sudoku_example.draw()
+    Sudoku(sudoku.original).draw()
+    solve_Sudoku(sudoku)
