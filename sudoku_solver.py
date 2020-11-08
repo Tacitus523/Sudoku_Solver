@@ -1,4 +1,5 @@
 import numpy as np
+from random import choice
 
 class Sudoku:
     elements=[1,2,3,4,5,6,7,8,9]
@@ -61,7 +62,23 @@ class Sudoku:
         if not self.is_legit():
             return False
         return True
-        
+
+def choose_sudoku():
+    sudokus=[]
+    with open('sudokus_csv.txt') as f:
+        for line in f.readlines():
+            raw=line.strip().strip(',').replace('.','0')
+            sudoku_list=[]
+            for char in raw:
+                sudoku_list.append(int(char))
+            
+            sudoku_array=np.array([sudoku_list])
+            sudoku_array=np.reshape(sudoku_array,(9,9))
+            sudokus.append(sudoku_array)
+    return Sudoku(choice(sudokus))
+
+sudoku=choose_sudoku()
+
 sudoku1=np.array([
     [0,0,0,0,7,0,8,0,0],
     [0,0,0,0,3,2,0,9,0],
@@ -137,5 +154,6 @@ def solve_Sudoku(sudoku, row=0, column_element=0):
         return sudoku.solution
 
 if __name__ == "__main__":
-    print(solve_Sudoku(sudoku1))
-    
+    sudoku.draw() 
+    solve_Sudoku(sudoku)
+    sudoku.solution.draw()   

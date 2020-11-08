@@ -1,7 +1,7 @@
 import pygame
 import time
 import numpy as np
-from sudoku_solver import Sudoku, sudoku1, sudoku2, sudoku3, solve_Sudoku
+from sudoku_solver import Sudoku, choose_sudoku, solve_Sudoku
 
 #Initilaze
 pygame.font.init()
@@ -100,11 +100,12 @@ def get_input(sudoku):
         if rect.collidepoint(pygame.mouse.get_pos()):
             index = rects.index(rect)
             if event.type==pygame.KEYDOWN and (event.key in [pygame.K_1,pygame.K_2,pygame.K_3,pygame.K_4,pygame.K_5,pygame.K_6,pygame.K_7,pygame.K_8,pygame.K_9]):
-                if not sudoku.array[index%9][index//9]:
+                if not sudoku.original[index%9][index//9]:
+                    temp=sudoku.array[index%9][index//9]
                     sudoku.array[index%9][index//9]=int(event.unicode)
                     #set new entry
                     if not sudoku.is_legit():
-                        sudoku.array[index%9][index//9]=0
+                        sudoku.array[index%9][index//9]=temp
                         warning_font=pygame.font.SysFont('arial',24, True)
                         warning_label=warning_font.render("This can't be placed here",True,(0,0,0))
                         screen.blit(warning_label,((WIDTH-warning_label.get_width())/2,25))
@@ -128,6 +129,7 @@ def get_input(sudoku):
         if event.button==1 and solve_button_rect.collidepoint(pygame.mouse.get_pos()):
             sudoku.array=sudoku.original.copy()
             draw_solution(sudoku)
+            
 
 def draw_solution(sudoku, row=0, column_element=0):
     #all nines are placed,lesser numbers just need to be placed
@@ -139,6 +141,9 @@ def draw_solution(sudoku, row=0, column_element=0):
                     sudoku.array[row][column]=element
                     draw_field(sudoku)
         return True
+    
+    elif sudoku.is_solved():
+        return sudoku.solution
 
     elif not sudoku.original[row][column_element]:
         for element in Sudoku.elements:
@@ -187,7 +192,12 @@ def play_sudoku(sudoku):
                 running=False
 
         draw_field(sudoku)
+        if sudoku.is_solved():
+            pygame.time.wait(50)
+            running=False
         get_input(sudoku)
         
-
-play_sudoku(sudoku3)
+if __name__=='__main__':
+    sudoku=choose_sudoku()
+    play_sudoku(sudoku)
+    print("finished")
