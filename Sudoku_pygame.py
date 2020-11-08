@@ -2,6 +2,7 @@ import pygame
 import time
 import numpy as np
 from sudoku_solver import Sudoku, choose_sudoku, solve_Sudoku
+import os
 
 #Initilaze
 pygame.font.init()
@@ -104,7 +105,7 @@ def get_input(sudoku):
                     temp=sudoku.array[index%9][index//9]
                     sudoku.array[index%9][index//9]=int(event.unicode)
                     #set new entry
-                    if not sudoku.is_legit():
+                    if not sudoku.is_legit(index%9,index//9,int(event.unicode)):
                         sudoku.array[index%9][index//9]=temp
                         warning_font=pygame.font.SysFont('arial',24, True)
                         warning_label=warning_font.render("This can't be placed here",True,(0,0,0))
@@ -131,39 +132,22 @@ def get_input(sudoku):
             draw_solution(sudoku)
             
 
-def draw_solution(sudoku, row=0, column_element=0):
-    #all nines are placed,lesser numbers just need to be placed
-    if row==8:
-        for column in range(9):
-            for element in Sudoku.elements:
-                if sudoku.legit_in(row,column,element):
-                    pygame.time.wait(50)
-                    sudoku.array[row][column]=element
-                    draw_field(sudoku)
+def draw_solution(sudoku):
+    if not sudoku.get_empty():
         return True
     
-    elif sudoku.is_solved():
-        return sudoku.solution
-
-    elif not sudoku.original[row][column_element]:
-        for element in Sudoku.elements:
-            if sudoku.legit_in(row,column_element,element):
-                pygame.time.wait(5)
-                draw_field(sudoku)
-                if column_element<8:
-                    if draw_solution(sudoku,row,column_element+1):
-                        return True
-                elif row<8:
-                    if draw_solution(sudoku,row+1,0):
-                        return True
-            sudoku.array[row][column_element]=0
     else:
-        if column_element<8:
-            if draw_solution(sudoku,row,column_element+1):
-                return True
-        elif row<8:
-            if draw_solution(sudoku,row+1,0):
-                return True
+        target_row_index, target_column_index = sudoku.get_empty()
+        for element in Sudoku.elements:
+            if sudoku.is_legit(target_row_index,target_column_index,element):
+                sudoku.array[target_row_index][target_column_index] = element
+                draw_field(sudoku)
+
+                if draw_solution(sudoku):
+                    return True
+
+                sudoku.array[target_row_index][target_column_index]=0
+    return False
 
 def hint(sudoku):
     for row_index,row in enumerate(sudoku.array):
@@ -192,12 +176,29 @@ def play_sudoku(sudoku):
                 running=False
 
         draw_field(sudoku)
-        if sudoku.is_solved():
-            pygame.time.wait(50)
+        if not sudoku.get_empty():
+            pygame.time.wait(5)
             running=False
         get_input(sudoku)
+
+    if sudoku.get_empty():
+        np.savetxt("save_sudoku.csv", sudoku.array, delimiter=",")
+        np.savetxt("save_original.csv", sudoku.original, delimiter=",")
+        np.savetxt("save_solution.csv", sudoku.solution.array, delimiter=",")
+    else:
+        os.remove("save_sudoku.csv")
+        os.remove("save_original.csv")
+        os.remove("save_solution.csv")
+
+
         
 if __name__=='__main__':
-    sudoku=choose_sudoku()
+    try:
+        sudoku = Sudoku(np.genfromtxt('save_sudoku.csv', dtype=int, delimiter=','))
+        sudoku.original = np.genfromtxt('save_original.csv', dtype=int, delimiter=',')
+        sudoku.solution = Sudoku(np.genfromtxt('save_solution.csv', dtype=int, delimiter=','))
+        
+    except:
+        sudoku=choose_sudoku()
+
     play_sudoku(sudoku)
-    print("finished")
