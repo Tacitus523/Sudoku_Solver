@@ -1,6 +1,7 @@
 import pygame
+import time
 import numpy as np
-from sudoku_solver import Sudoku, sudoku
+from sudoku_solver import Sudoku, sudoku1, sudoku2, sudoku3, solve_Sudoku
 
 #Initilaze
 pygame.font.init()
@@ -64,6 +65,19 @@ def draw_field(sudoku):
             pygame.draw.line(paper, (0,0,0), [x,0], [x,paper_size[0]], 1)
 
     screen.blit(paper,(WIDTH//2-paper_size[0]//2,HEIGHT//2-paper_size[1]//2))
+
+    button_size=(90,30)
+    button_surf=[pygame.Surface(button_size),pygame.Surface(button_size)]
+    button_surf[0].fill((0,200,0))
+    button_surf[1].fill((200,0,0))
+    button_font=pygame.font.SysFont('arial', 24, True)
+    hint_label=button_font.render("HINT",True,(0,0,0))
+    solve_label=button_font.render("SOLVE",True,(0,0,0))
+    button_surf[0].blit(hint_label,(button_size[0]//2-hint_label.get_width()//2,+button_size[1]//2-hint_label.get_height()//2))
+    button_surf[1].blit(solve_label,(button_size[0]//2-solve_label.get_width()//2,+button_size[1]//2-solve_label.get_height()//2))
+    screen.blit(button_surf[0],(WIDTH//2-paper_size[0]//3-button_size[0]//2,HEIGHT-50))
+    screen.blit(button_surf[1],(WIDTH//2+paper_size[0]//3-button_size[0]//2,HEIGHT-50))
+
     pygame.display.update()
 
 def get_input(sudoku):
@@ -81,7 +95,6 @@ def get_input(sudoku):
     pygame.event.set_allowed(pygame.MOUSEMOTION)
     mouse = pygame.mouse.get_pos()
     pygame.event.set_blocked([pygame.MOUSEMOTION,pygame.KEYUP])
-
 
     for rect in rects:
         if rect.collidepoint(pygame.mouse.get_pos()):
@@ -102,81 +115,79 @@ def get_input(sudoku):
                 if not sudoku.original[index%9][index//9]:
                     sudoku.array[index%9][index//9]=0
 
+    button_size=(90,30)
+    hint_button_pos=(WIDTH//2-paper_size[0]//3-button_size[0]//2,HEIGHT-50)
+    solve_button_pos=(WIDTH//2+paper_size[0]//3-button_size[0]//2,HEIGHT-50)
+    hint_button_rect=pygame.Rect(hint_button_pos,button_size)
+    solve_button_rect=pygame.Rect(solve_button_pos,button_size)
+
+    if event.type==pygame.MOUSEBUTTONDOWN:
+        if event.button==1 and hint_button_rect.collidepoint(pygame.mouse.get_pos()):
+            hint(sudoku)
+        
+        if event.button==1 and solve_button_rect.collidepoint(pygame.mouse.get_pos()):
+            sudoku.array=sudoku.original.copy()
+            draw_solution(sudoku)
+
 def draw_solution(sudoku, row=0, column_element=0):
-    if not sudoku.original[row][column_element]:
+    #all nines are placed,lesser numbers just need to be placed
+    if row==8:
+        for column in range(9):
+            for element in Sudoku.elements:
+                if sudoku.legit_in(row,column,element):
+                    pygame.time.wait(50)
+                    sudoku.array[row][column]=element
+                    draw_field(sudoku)
+        return True
+
+    elif not sudoku.original[row][column_element]:
         for element in Sudoku.elements:
             if sudoku.legit_in(row,column_element,element):
-                pygame.time.wait(25)
+                pygame.time.wait(5)
                 draw_field(sudoku)
-                if column_element!=8:
+                if column_element<8:
                     if draw_solution(sudoku,row,column_element+1):
                         return True
-                elif row!=8:
+                elif row<8:
                     if draw_solution(sudoku,row+1,0):
                         return True
-                #all nines are placed,lesser numbers just need to be placed
-                elif row==8:
-                    pygame.time.wait(5000)
-                    for column in sudoku.array:
-                        for elements in Sudoku.elements:
-                            if sudoku.legit_in(8,column,element):
-                                sudoku.array[8][column]=element
-                                draw_field(sudoku)
-                                pygame.time.wait(1000)
-                    if sudoku.is_solved():
-                        draw_field(sudoku)
-                        pygame.time.wait(5000)
-                        return True
-                        
-            else:
-                sudoku.array[row][column_element]=0
+            sudoku.array[row][column_element]=0
     else:
-        if column_element!=8:
+        if column_element<8:
             if draw_solution(sudoku,row,column_element+1):
                 return True
-        elif row!=8:
+        elif row<8:
             if draw_solution(sudoku,row+1,0):
                 return True
-        #all nines are placed,lesser numbers just need to be placed
-        elif row==8:
-            pygame.time.wait(5000)
-            for column in sudoku.array:
-                for elements in Sudoku.elements:
-                    if sudoku.legit_in(8,column,elements):
-                        sudoku.array[8][column]=elements
-                        draw_field(sudoku)
-                        pygame.time.wait(1000)
-                    
-    if sudoku.is_solved():
-        draw_field(sudoku)
-        pygame.time.wait(5000)
-        return True
-    
-    
 
-def play_sudoku():
+def hint(sudoku):
+    for row_index,row in enumerate(sudoku.array):
+        for column_index,column in enumerate(row):
+            if column and column!=sudoku.solution.array[row_index][column_index]:
+                sudoku.original[row_index][column_index]=sudoku.solution.array[row_index][column_index]
+                sudoku.array[row_index][column_index]=sudoku.solution.array[row_index][column_index]
+                return
     
-    #zero settings   
-    #sudoku=Sudoku(np.zeros((9,9),dtype=int))
+    for row_index,row in enumerate(sudoku.array):
+        for column_index,column in enumerate(row):
+            if not column:
+                sudoku.original[row_index][column_index]=sudoku.solution.array[row_index][column_index]
+                sudoku.array[row_index][column_index]=sudoku.solution.array[row_index][column_index]
+                return
 
-    #set Clock
-    FPS = 30
-    clock = pygame.time.Clock()
-    
+
+def play_sudoku(sudoku):
+    if not sudoku.solution:
+        solve_Sudoku(sudoku)
+
     running=True
     while running:
-        clock.tick(FPS)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running=False
 
         draw_field(sudoku)
-
         get_input(sudoku)
         
 
-#play_sudoku()
-Sudoku(sudoku.original).draw()
-draw_solution(sudoku)
-Sudoku(sudoku.original).draw()
-sudoku.draw()
+play_sudoku(sudoku3)
